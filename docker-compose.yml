@@ -1,0 +1,34 @@
+# start ollama with `docker compose up -d`
+# unload ollama with `docker compose down -v`
+
+
+services:
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+  ollama-pull:
+    image: ollama/ollama
+    container_name: ollama-pull
+    depends_on:
+      - ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    entrypoint: >
+      sh -c "
+        echo 'Waiting for Ollama to be ready...';
+        until curl -sf http://ollama:11434/api/tags > /dev/null 2>&1; do
+          sleep 2;
+        done;
+        echo 'Pulling gemma4:e4b...';
+        OLLAMA_HOST=http://ollama:11434 ollama pull gemma4:e4b;
+        echo 'Done.';
+      "
+
+volumes:
+  ollama_data:
