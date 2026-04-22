@@ -2,6 +2,17 @@
 
 Run Google's Gemma 4 models locally using [Ollama](https://ollama.com).
 
+## Demo
+
+## Claude code with Gemma 4 in Ollama Playground
+![Claude Code with Ollama and Gemma 4](./doc/claudecode-ollama-gemma4.png)
+
+## Opencode with Ollama and Gemma 4
+![Opencode with Ollama and Gemma 4](./doc/opencode-ollama-gemma4.png)
+
+## LiteLLM proxy translating Claude Code API calls to Ollama
+![LiteLLM proxy logs](./doc/litellm.png)
+
 ## Install Ollama
 
 ### macOS / Linux
@@ -149,11 +160,98 @@ Gemma 4 supports configurable thinking/reasoning. When enabled, the model output
 | Laptops / lightweight tasks | `gemma4:e4b` |
 | Workstation / high quality | `gemma4:26b` or `gemma4:31b` |
 
+## Using with Claude Code
+
+You can use Gemma 4 as a local backend for [Claude Code](https://code.claude.com) via [LiteLLM](https://docs.litellm.ai), which acts as a proxy translating Claude Code's API calls to Ollama.
+
+### Setup
+
+**1. Install LiteLLM into a virtual environment** (avoids system Python conflicts):
+
+```bash
+python3 -m venv ~/.litellm-venv
+~/.litellm-venv/bin/pip install "litellm[proxy]==1.83.11"
+```
+
+> **Security note:** LiteLLM versions 1.82.7 and 1.82.8 were compromised with credential-stealing malware. Do not install those versions.
+
+**2. Create the LiteLLM config** at `~/.config/litellm/config.yaml`:
+
+```yaml
+model_list:
+  - model_name: claude-sonnet-4-6
+    litellm_params:
+      model: ollama/gemma4:e4b
+      api_base: http://localhost:11434
+
+  - model_name: claude-sonnet-4-5
+    litellm_params:
+      model: ollama/gemma4:e4b
+      api_base: http://localhost:11434
+
+  - model_name: claude-3-5-sonnet-20241022
+    litellm_params:
+      model: ollama/gemma4:e4b
+      api_base: http://localhost:11434
+
+  - model_name: claude-opus-4-5
+    litellm_params:
+      model: ollama/gemma4:e4b
+      api_base: http://localhost:11434
+
+  - model_name: claude-haiku-4-5
+    litellm_params:
+      model: ollama/gemma4:e4b
+      api_base: http://localhost:11434
+
+litellm_settings:
+  drop_params: true
+```
+
+**3. Configure Claude Code** at `~/.claude/settings.json`:
+
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://localhost:4000",
+    "ANTHROPIC_API_KEY": "litellm-local"
+  }
+}
+```
+
+### Running
+
+Start Ollama (if not already running):
+
+```bash
+ollama serve
+```
+
+Start the LiteLLM proxy:
+
+```bash
+~/.litellm-venv/bin/litellm --config ~/.config/litellm/config.yaml --port 4000
+```
+
+Then in a new terminal, run Claude Code as normal:
+
+```bash
+claude
+```
+
+### Caveats
+
+- Gemma 4 is not a Claude model. Claude Code features that depend on Claude-specific capabilities (extended tool use, long agentic chains) may behave unpredictably.
+- The LiteLLM proxy must be running before launching Claude Code.
+- `drop_params: true` in the config silently ignores unsupported parameters (e.g. `thinking`, `betas`) instead of erroring.
+
 ## Resources
 
 - [Ollama documentation](https://ollama.com/docs)
 - [Gemma 4 model card on Ollama](https://ollama.com/library/gemma4)
 - [Google DeepMind - Gemma](https://ai.google.dev/gemma)
+- [LiteLLM documentation](https://docs.litellm.ai)
+- [Claude Code documentation](https://code.claude.com/docs)
 
 ## Project Files
 
